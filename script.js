@@ -55,8 +55,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- お問い合わせフォームの送信処理（スプレッドシート連携版） ---
     const form = document.getElementById('contact-form');
     if (form) {
-        // GAS接続テストを一時的に無効化
-        // testGASConnection();
+        // GAS接続テストを実行
+        testGASConnection();
         
         form.addEventListener('submit', function(e) {
             e.preventDefault(); // デフォルトの送信をキャンセル
