@@ -76,8 +76,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // スプレッドシートにデータを保存
             saveToSpreadsheet(companyName, userName, email, message)
                 .then(() => {
-                    // 成功時：メールクライアントも開く
-                    sendEmail(companyName, userName, email, message);
+                    // 成功時：メール送信を無効化（スプレッドシートのみ）
+                    // sendEmail(companyName, userName, email, message);
                     
                     // 成功メッセージを表示
                     setTimeout(() => {
