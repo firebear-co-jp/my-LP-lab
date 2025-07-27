@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const message = document.getElementById('message').value || '';
 
             // メールリンクを作成
-            const mailtoLink = `mailto:info@firebear.co.jp?subject=お問い合わせ：${encodeURIComponent(companyName)}&body=${encodeURIComponent(`
+            const mailtoLink = `mailto:takayuki.sase@firebear.co.jp?subject=お問い合わせ：${encodeURIComponent(companyName)}&body=${encodeURIComponent(`
 会社名：${companyName}
 ご担当者様名：${userName}
 メールアドレス：${email}
