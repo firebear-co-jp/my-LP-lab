@@ -55,6 +55,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- お問い合わせフォームの送信処理（CORS対応版） ---
     const form = document.getElementById('contact-form');
     if (form) {
+        // GAS接続テスト機能を追加
+        console.log('GAS URL for testing:', GAS_URL);
+        
+        // ページ読み込み時にGASの接続テストを実行
+        testGASConnection();
+        
         form.addEventListener('submit', function(e) {
             e.preventDefault(); // デフォルトの送信をキャンセル
             
@@ -108,31 +114,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // エラーハンドリング
                 script.onerror = function() {
-                    console.error('Script loading error');
+                    console.error('Script loading error - GAS URL:', GAS_URL);
+                    console.error('Form data:', jsonData);
                     
                     // フォールバック: メール送信に切り替え
-                    if (confirm('自動送信に失敗しました。メールクライアントで送信しますか？')) {
+                    if (confirm('自動送信に失敗しました。\n\nエラー詳細: スクリプトの読み込みに失敗\n\nメールクライアントで送信しますか？')) {
                         sendEmailFallback(formData);
                     } else {
-                        alert('送信をキャンセルしました。');
+                        alert('送信をキャンセルしました。\n\n技術的な問題が発生しています。\nGoogle Apps Scriptの設定を確認してください。');
                     }
                     
                     submitButton.disabled = false;
                     submitButton.innerHTML = originalText;
-                    document.head.removeChild(script);
+                    if (document.head.contains(script)) {
+                        document.head.removeChild(script);
+                    }
                     delete window.handleResponse;
                 };
                 
                 // タイムアウト設定
                 setTimeout(() => {
                     if (window.handleResponse) {
-                        console.error('Request timeout');
+                        console.error('Request timeout - GAS URL:', GAS_URL);
+                        console.error('Form data:', jsonData);
                         
                         // フォールバック: メール送信に切り替え
-                        if (confirm('送信がタイムアウトしました。メールクライアントで送信しますか？')) {
+                        if (confirm('送信がタイムアウトしました。\n\nエラー詳細: 10秒以内にレスポンスがありませんでした\n\nメールクライアントで送信しますか？')) {
                             sendEmailFallback(formData);
                         } else {
-                            alert('送信をキャンセルしました。');
+                            alert('送信をキャンセルしました。\n\n技術的な問題が発生しています。\nGoogle Apps Scriptの設定を確認してください。');
                         }
                         
                         submitButton.disabled = false;
@@ -173,6 +183,36 @@ ${message}
         `)}`;
 
         window.location.href = mailtoLink;
+    }
+
+    // GAS接続テスト関数
+    function testGASConnection() {
+        const testUrl = new URL(GAS_URL);
+        testUrl.searchParams.append('callback', 'testCallback');
+        testUrl.searchParams.append('test', 'true');
+        
+        const testScript = document.createElement('script');
+        testScript.src = testUrl.toString();
+        
+        window.testCallback = function(response) {
+            console.log('GAS Connection Test - Success:', response);
+            delete window.testCallback;
+        };
+        
+        testScript.onerror = function() {
+            console.error('GAS Connection Test - Failed');
+            console.error('Please check your Google Apps Script configuration');
+            delete window.testCallback;
+        };
+        
+        setTimeout(() => {
+            if (window.testCallback) {
+                console.error('GAS Connection Test - Timeout');
+                delete window.testCallback;
+            }
+        }, 5000);
+        
+        document.head.appendChild(testScript);
     }
 
 });
