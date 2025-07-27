@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- 設定値（Google Apps ScriptのURLを設定） ---
     const RECAPTCHA_SITE_KEY = '6LfgboIrAAAAACcypRg-zXsfGfu3n_XdwcqnEwt0';
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbzI5IARlTFDjVg6XUEzn1tSQ_c2DtD05tnlQKOJn4RvNFhHMfwyUyXINZgbOP-gnxPH/exec';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyruS9Mgu4AwnwRJS9BFt-DwlJ2u-yODal1DLJYcG8IjdPd_nn2qZQ4_Hf3b_mG3uiH/exec';
     
     
     // --- ハンバーガーメニュー機能 ---
@@ -55,6 +55,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- お問い合わせフォームの送信処理（スプレッドシート連携版） ---
     const form = document.getElementById('contact-form');
     if (form) {
+        // GAS接続テストを実行
+        testGASConnection();
+        
         form.addEventListener('submit', function(e) {
             e.preventDefault(); // デフォルトの送信をキャンセル
             
@@ -122,10 +125,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 message: message
             };
 
+            console.log('Attempting to save to spreadsheet:', data);
+            console.log('GAS URL:', GAS_URL);
+
             // JSONP風のアプローチでGASに送信
             const url = new URL(GAS_URL);
             url.searchParams.append('callback', 'spreadsheetCallback');
             url.searchParams.append('data', JSON.stringify(data));
+
+            console.log('Full URL:', url.toString());
 
             const script = document.createElement('script');
             script.src = url.toString();
@@ -133,15 +141,20 @@ document.addEventListener('DOMContentLoaded', function() {
             window.spreadsheetCallback = function(response) {
                 console.log('Spreadsheet save response:', response);
                 if (response && response.result === 'success') {
+                    console.log('✅ Spreadsheet save successful');
                     resolve(response);
                 } else {
+                    console.error('❌ Spreadsheet save failed:', response);
                     reject(new Error(response ? response.message : 'Unknown error'));
                 }
-                document.head.removeChild(script);
+                if (document.head.contains(script)) {
+                    document.head.removeChild(script);
+                }
                 delete window.spreadsheetCallback;
             };
             
             script.onerror = function() {
+                console.error('❌ Script loading failed - GAS URL may be incorrect');
                 reject(new Error('Script loading failed'));
                 if (document.head.contains(script)) {
                     document.head.removeChild(script);
@@ -152,6 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // タイムアウト設定
             setTimeout(() => {
                 if (window.spreadsheetCallback) {
+                    console.error('❌ Request timeout - GAS may not be responding');
                     reject(new Error('Request timeout'));
                     if (document.head.contains(script)) {
                         document.head.removeChild(script);
@@ -176,6 +190,39 @@ ${message}
         `)}`;
 
         window.location.href = mailtoLink;
+    }
+
+    // GAS接続テスト関数
+    function testGASConnection() {
+        console.log('🔍 Testing GAS connection...');
+        console.log('GAS URL:', GAS_URL);
+        
+        const testUrl = new URL(GAS_URL);
+        testUrl.searchParams.append('callback', 'testCallback');
+        testUrl.searchParams.append('test', 'true');
+        
+        const testScript = document.createElement('script');
+        testScript.src = testUrl.toString();
+        
+        window.testCallback = function(response) {
+            console.log('✅ GAS Connection Test - Success:', response);
+            delete window.testCallback;
+        };
+        
+        testScript.onerror = function() {
+            console.error('❌ GAS Connection Test - Failed');
+            console.error('Please check your Google Apps Script configuration');
+            delete window.testCallback;
+        };
+        
+        setTimeout(() => {
+            if (window.testCallback) {
+                console.error('❌ GAS Connection Test - Timeout');
+                delete window.testCallback;
+            }
+        }, 5000);
+        
+        document.head.appendChild(testScript);
     }
 
 });
