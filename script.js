@@ -172,20 +172,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // メール送信関数
-    function sendEmail(companyName, userName, email, message) {
-        const mailtoLink = `mailto:takayuki.sase@firebear.co.jp?subject=お問い合わせ：${encodeURIComponent(companyName)}&body=${encodeURIComponent(`
-会社名：${companyName}
-ご担当者様名：${userName}
-メールアドレス：${email}
-
-ご相談内容：
-${message}
-        `)}`;
-
-        window.location.href = mailtoLink;
-    }
-
     // GAS接続テスト関数
     function testGASConnection() {
         console.log('🔍 Testing GAS connection...');
