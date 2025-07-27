@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     
-    // --- お問い合わせフォームの送信処理（スプレッドシート連携版） ---
+    // --- お問い合わせフォームの送信処理（CORS対応版） ---
     const form = document.getElementById('contact-form');
     if (form) {
         form.addEventListener('submit', function(e) {
@@ -75,37 +75,77 @@ document.addEventListener('DOMContentLoaded', function() {
                 jsonData.recaptchaToken = token; // 取得したトークンをデータに追加
                 jsonData.timestamp = new Date().toISOString(); // 送信日時を追加
 
-                // GASへデータを送信
-                fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(jsonData),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.text(); // JSONではなくテキストとして取得
-                })
-                .then(data => {
-                    console.log('GAS Response:', data);
+                // CORSエラーを回避するため、JSONP風のアプローチを使用
+                const url = new URL(GAS_URL);
+                url.searchParams.append('callback', 'handleResponse');
+                url.searchParams.append('data', JSON.stringify(jsonData));
+
+                // 動的にスクリプトタグを作成してリクエスト
+                const script = document.createElement('script');
+                script.src = url.toString();
+                
+                // グローバルコールバック関数を定義
+                window.handleResponse = function(response) {
+                    console.log('GAS Response:', response);
                     
-                    // 成功メッセージを表示
-                    const successMessage = document.getElementById('success-message');
-                    form.style.display = 'none';
-                    successMessage.style.display = 'block';
+                    if (response && response.result === 'success') {
+                        // 成功メッセージを表示
+                        const successMessage = document.getElementById('success-message');
+                        form.style.display = 'none';
+                        successMessage.style.display = 'block';
+                    } else {
+                        throw new Error(response ? response.message : 'Unknown error');
+                    }
                     
                     // ボタンを元に戻す
                     submitButton.disabled = false;
                     submitButton.innerHTML = originalText;
-                })
-                .catch(error => {
-                    // 通信エラーなどの場合
-                    console.error('Submission Error:', error);
-                    alert('送信に失敗しました。時間をおいて再度お試しください。\n\nエラー詳細: ' + error.message);
+                    
+                    // スクリプトタグを削除
+                    document.head.removeChild(script);
+                    delete window.handleResponse;
+                };
+                
+                // エラーハンドリング
+                script.onerror = function() {
+                    console.error('Script loading error');
+                    
+                    // フォールバック: メール送信に切り替え
+                    if (confirm('自動送信に失敗しました。メールクライアントで送信しますか？')) {
+                        sendEmailFallback(formData);
+                    } else {
+                        alert('送信をキャンセルしました。');
+                    }
+                    
                     submitButton.disabled = false;
                     submitButton.innerHTML = originalText;
-                });
+                    document.head.removeChild(script);
+                    delete window.handleResponse;
+                };
+                
+                // タイムアウト設定
+                setTimeout(() => {
+                    if (window.handleResponse) {
+                        console.error('Request timeout');
+                        
+                        // フォールバック: メール送信に切り替え
+                        if (confirm('送信がタイムアウトしました。メールクライアントで送信しますか？')) {
+                            sendEmailFallback(formData);
+                        } else {
+                            alert('送信をキャンセルしました。');
+                        }
+                        
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = originalText;
+                        if (document.head.contains(script)) {
+                            document.head.removeChild(script);
+                        }
+                        delete window.handleResponse;
+                    }
+                }, 10000); // 10秒でタイムアウト
+                
+                document.head.appendChild(script);
+                
             }).catch(recaptchaError => {
                 // reCAPTCHAの実行自体に失敗した場合
                 console.error('reCAPTCHA Error:', recaptchaError);
@@ -114,6 +154,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitButton.innerHTML = originalText;
             });
         });
+    }
+
+    // フォールバック用のメール送信関数
+    function sendEmailFallback(formData) {
+        const companyName = formData.get('companyName');
+        const userName = formData.get('userName');
+        const email = formData.get('email');
+        const message = formData.get('message');
+
+        const mailtoLink = `mailto:your-email@example.com?subject=お問い合わせ：${encodeURIComponent(companyName)}&body=${encodeURIComponent(`
+会社名：${companyName}
+ご担当者様名：${userName}
+メールアドレス：${email}
+
+ご相談内容：
+${message}
+        `)}`;
+
+        window.location.href = mailtoLink;
     }
 
 });
