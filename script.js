@@ -65,41 +65,37 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.innerHTML = '送信中...';
 
             // フォームデータを取得
-            const formData = new FormData(form);
-            
-            // メール送信を実行
-            sendEmailFallback(formData);
-            
-            // 成功メッセージを表示
-            setTimeout(() => {
-                const successMessage = document.getElementById('success-message');
-                form.style.display = 'none';
-                successMessage.style.display = 'block';
-                
-                // ボタンを元に戻す
-                submitButton.disabled = false;
-                submitButton.innerHTML = originalText;
-            }, 1000);
-        });
-    }
+            const companyName = document.getElementById('company-name').value || '';
+            const userName = document.getElementById('user-name').value || '';
+            const email = document.getElementById('email').value || '';
+            const message = document.getElementById('message').value || '';
 
-    // フォールバック用のメール送信関数
-    function sendEmailFallback(formData) {
-        const companyName = formData.get('companyName');
-        const userName = formData.get('userName');
-        const email = formData.get('email');
-        const message = formData.get('message');
-
-        const mailtoLink = `mailto:your-email@example.com?subject=お問い合わせ：${encodeURIComponent(companyName)}&body=${encodeURIComponent(`
+            // メールリンクを作成
+            const mailtoLink = `mailto:info@firebear.co.jp?subject=お問い合わせ：${encodeURIComponent(companyName)}&body=${encodeURIComponent(`
 会社名：${companyName}
 ご担当者様名：${userName}
 メールアドレス：${email}
 
 ご相談内容：
 ${message}
-        `)}`;
+            `)}`;
 
-        window.location.href = mailtoLink;
+            // メールクライアントを開く
+            window.location.href = mailtoLink;
+            
+            // 成功メッセージを表示
+            setTimeout(() => {
+                const successMessage = document.getElementById('success-message');
+                if (successMessage) {
+                    form.style.display = 'none';
+                    successMessage.style.display = 'block';
+                }
+                
+                // ボタンを元に戻す
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalText;
+            }, 1000);
+        });
     }
 
 });
