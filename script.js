@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- 設定値（Google Apps ScriptのURLを設定） ---
     const RECAPTCHA_SITE_KEY = '6LfgboIrAAAAACcypRg-zXsfGfu3n_XdwcqnEwt0';
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyruS9Mgu4AwnwRJS9BFt-DwlJ2u-yODal1DLJYcG8IjdPd_nn2qZQ4_Hf3b_mG3uiH/exec';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxPD6Qtdpxn76eMvoG2LoYl8S7XP-9QjYfx2fQbshSS6q2FVq62jCo2NAqSBUSIIOQB/exec';
     
     
     // --- ハンバーガーメニュー機能 ---
