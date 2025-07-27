@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
 
-    // --- 設定値（ご自身のキーとURLに書き換えてください） ---
+    // --- 設定値（Formspreeのエンドポイントに変更） ---
     const RECAPTCHA_SITE_KEY = '6LfgboIrAAAAACcypRg-zXsfGfu3n_XdwcqnEwt0';
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbzI5IARlTFDjVg6XUEzn1tSQ_c2DtD05tnlQKOJn4RvNFhHMfwyUyXINZgbOP-gnxPH/exec';
+    const FORMSPREE_URL = 'https://formspree.io/f/YOUR_FORM_ID'; // ここにFormspreeのエンドポイントを設定
     
     
     // --- ハンバーガーメニュー機能 ---
@@ -52,15 +52,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     
-    // --- お問い合わせフォームの送信処理（CORS対応版） ---
+    // --- お問い合わせフォームの送信処理（メール送信版） ---
     const form = document.getElementById('contact-form');
     if (form) {
-        // GAS接続テスト機能を追加
-        console.log('GAS URL for testing:', GAS_URL);
-        
-        // ページ読み込み時にGASの接続テストを実行
-        testGASConnection();
-        
         form.addEventListener('submit', function(e) {
             e.preventDefault(); // デフォルトの送信をキャンセル
             
@@ -68,101 +62,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const originalText = submitButton.innerHTML;
             
             submitButton.disabled = true;
-            submitButton.innerHTML = '検証中...';
+            submitButton.innerHTML = '送信中...';
 
-            // reCAPTCHA v3 を実行してトークンを取得
-            grecaptcha.execute(RECAPTCHA_SITE_KEY, {action: 'submit'}).then(function(token) {
+            // フォームデータを取得
+            const formData = new FormData(form);
+            
+            // メール送信を実行
+            sendEmailFallback(formData);
+            
+            // 成功メッセージを表示
+            setTimeout(() => {
+                const successMessage = document.getElementById('success-message');
+                form.style.display = 'none';
+                successMessage.style.display = 'block';
                 
-                submitButton.innerHTML = '送信中...';
-                
-                const formData = new FormData(form);
-                const jsonData = {};
-                formData.forEach((value, key) => { jsonData[key] = value; });
-                jsonData.recaptchaToken = token; // 取得したトークンをデータに追加
-                jsonData.timestamp = new Date().toISOString(); // 送信日時を追加
-
-                // CORSエラーを回避するため、JSONP風のアプローチを使用
-                const url = new URL(GAS_URL);
-                url.searchParams.append('callback', 'handleResponse');
-                url.searchParams.append('data', JSON.stringify(jsonData));
-
-                // 動的にスクリプトタグを作成してリクエスト
-                const script = document.createElement('script');
-                script.src = url.toString();
-                
-                // グローバルコールバック関数を定義
-                window.handleResponse = function(response) {
-                    console.log('GAS Response:', response);
-                    
-                    if (response && response.result === 'success') {
-                        // 成功メッセージを表示
-                        const successMessage = document.getElementById('success-message');
-                        form.style.display = 'none';
-                        successMessage.style.display = 'block';
-                    } else {
-                        throw new Error(response ? response.message : 'Unknown error');
-                    }
-                    
-                    // ボタンを元に戻す
-                    submitButton.disabled = false;
-                    submitButton.innerHTML = originalText;
-                    
-                    // スクリプトタグを削除
-                    document.head.removeChild(script);
-                    delete window.handleResponse;
-                };
-                
-                // エラーハンドリング
-                script.onerror = function() {
-                    console.error('Script loading error - GAS URL:', GAS_URL);
-                    console.error('Form data:', jsonData);
-                    
-                    // フォールバック: メール送信に切り替え
-                    if (confirm('自動送信に失敗しました。\n\nエラー詳細: スクリプトの読み込みに失敗\n\nメールクライアントで送信しますか？')) {
-                        sendEmailFallback(formData);
-                    } else {
-                        alert('送信をキャンセルしました。\n\n技術的な問題が発生しています。\nGoogle Apps Scriptの設定を確認してください。');
-                    }
-                    
-                    submitButton.disabled = false;
-                    submitButton.innerHTML = originalText;
-                    if (document.head.contains(script)) {
-                        document.head.removeChild(script);
-                    }
-                    delete window.handleResponse;
-                };
-                
-                // タイムアウト設定
-                setTimeout(() => {
-                    if (window.handleResponse) {
-                        console.error('Request timeout - GAS URL:', GAS_URL);
-                        console.error('Form data:', jsonData);
-                        
-                        // フォールバック: メール送信に切り替え
-                        if (confirm('送信がタイムアウトしました。\n\nエラー詳細: 10秒以内にレスポンスがありませんでした\n\nメールクライアントで送信しますか？')) {
-                            sendEmailFallback(formData);
-                        } else {
-                            alert('送信をキャンセルしました。\n\n技術的な問題が発生しています。\nGoogle Apps Scriptの設定を確認してください。');
-                        }
-                        
-                        submitButton.disabled = false;
-                        submitButton.innerHTML = originalText;
-                        if (document.head.contains(script)) {
-                            document.head.removeChild(script);
-                        }
-                        delete window.handleResponse;
-                    }
-                }, 10000); // 10秒でタイムアウト
-                
-                document.head.appendChild(script);
-                
-            }).catch(recaptchaError => {
-                // reCAPTCHAの実行自体に失敗した場合
-                console.error('reCAPTCHA Error:', recaptchaError);
-                alert('reCAPTCHAの認証に失敗しました。ページを再読み込みしてお試しください。');
+                // ボタンを元に戻す
                 submitButton.disabled = false;
                 submitButton.innerHTML = originalText;
-            });
+            }, 1000);
         });
     }
 
@@ -183,36 +100,6 @@ ${message}
         `)}`;
 
         window.location.href = mailtoLink;
-    }
-
-    // GAS接続テスト関数
-    function testGASConnection() {
-        const testUrl = new URL(GAS_URL);
-        testUrl.searchParams.append('callback', 'testCallback');
-        testUrl.searchParams.append('test', 'true');
-        
-        const testScript = document.createElement('script');
-        testScript.src = testUrl.toString();
-        
-        window.testCallback = function(response) {
-            console.log('GAS Connection Test - Success:', response);
-            delete window.testCallback;
-        };
-        
-        testScript.onerror = function() {
-            console.error('GAS Connection Test - Failed');
-            console.error('Please check your Google Apps Script configuration');
-            delete window.testCallback;
-        };
-        
-        setTimeout(() => {
-            if (window.testCallback) {
-                console.error('GAS Connection Test - Timeout');
-                delete window.testCallback;
-            }
-        }, 5000);
-        
-        document.head.appendChild(testScript);
     }
 
 });
