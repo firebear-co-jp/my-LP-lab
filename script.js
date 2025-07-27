@@ -95,21 +95,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 .catch((error) => {
                     console.error('Spreadsheet save error:', error);
                     
-                    // エラー時：メール送信のみ実行
-                    sendEmail(companyName, userName, email, message);
+                    // エラー時：メール送信を無効化（スプレッドシートのみ）
+                    // sendEmail(companyName, userName, email, message);
                     
-                    // 成功メッセージを表示（メール送信は成功したため）
-                    setTimeout(() => {
-                        const successMessage = document.getElementById('success-message');
-                        if (successMessage) {
-                            form.style.display = 'none';
-                            successMessage.style.display = 'block';
-                        }
-                        
-                        // ボタンを元に戻す
-                        submitButton.disabled = false;
-                        submitButton.innerHTML = originalText;
-                    }, 1000);
+                    // エラーメッセージを表示
+                    alert('送信に失敗しました。時間をおいて再度お試しください。');
+                    
+                    // ボタンを元に戻す
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalText;
                 });
         });
     }
